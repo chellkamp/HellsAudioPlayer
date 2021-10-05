@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Hell\'s Audio Player</string>
+    <string name="albums_label">Albums</string>
+    <string name="tracks_label">Tracks</string>
+</resources>
