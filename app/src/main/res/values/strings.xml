@@ -2,4 +2,9 @@
     <string name="app_name">Hell\'s Audio Player</string>
     <string name="albums_label">Albums</string>
     <string name="tracks_label">Tracks</string>
+    <string name="need_perms_msg">
+        If you want this app to do anything at all, it\'s going to need permission to read
+        files on this device\'s storage.
+    </string>
+    <string name="dlg_ok">OK</string>
 </resources>

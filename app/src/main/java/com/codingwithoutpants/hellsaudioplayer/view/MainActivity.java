@@ -5,7 +5,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
@@ -14,29 +13,21 @@ import androidx.viewpager2.widget.ViewPager2;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.View;
+import android.view.ViewGroup;
 
 import com.codingwithoutpants.hellsaudioplayer.R;
-import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.codingwithoutpants.util.WaitSplash;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+
+import java.lang.reflect.Constructor;
 
 /**
  * Main Activity.  All others bow down before this one.
  */
 public class MainActivity extends AppCompatActivity {
 
-    /**
-     * Sets the bottom margin on view pager based on whether the bottom sheet is hidden or not.
-     * @param bottomSheetState new state of bottom sheet
-     */
-    protected void adjustViewPagerMarginForBottomSheet(int bottomSheetState) {
-        View bottomSheet = findViewById(R.id.bottomSheet);
-        View topScrollView = findViewById(R.id.topScrollView);
-        int bottomSheetHeight = bottomSheetState == BottomSheetBehavior.STATE_HIDDEN ? 0 : bottomSheet.getMeasuredHeight();
-        CoordinatorLayout.LayoutParams lp = (CoordinatorLayout.LayoutParams)topScrollView.getLayoutParams();
-        lp.setMargins(0,0,0, bottomSheetHeight);
-        topScrollView.setLayoutParams(lp);
-    }
+    private WaitSplash _waitSplash;
 
     /**
      * Called when the activity is to be created.
@@ -51,34 +42,30 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        ViewGroup waitSplashWrapper = findViewById(R.id.waitSplashWrapper);
         View root = findViewById(R.id.root);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        /* CHRIS REMOVE
         View bottomSheet = findViewById(R.id.bottomSheet);
-        BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
+        BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);*/
 
+        _waitSplash = new WaitSplash(this, waitSplashWrapper);
+
+        /* CHRIS REMOVE
         // initialize bottom sheet behavior
         behavior.setHideable(true);
         behavior.setDraggable(false);
-
-        behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-            @Override
-            public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                adjustViewPagerMarginForBottomSheet(newState);
-            }
-
-            @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                // do nothing
-            }
-        });// end call to addBottomSheetCallback()
+        behavior.setState(BottomSheetBehavior.STATE_HIDDEN);*/
 
         TabLayout tabs = findViewById(R.id.tabs);
         ViewPager2 topViewPager = findViewById(R.id.topViewPager);
         MainStateAdapter pageAdapter = new MainStateAdapter(
-                this.getSupportFragmentManager(), this.getLifecycle());
+                _waitSplash,
+                getSupportFragmentManager(),
+                getLifecycle());
         topViewPager.setAdapter(pageAdapter);
 
         new TabLayoutMediator(tabs, topViewPager,
@@ -86,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
 
         toolbar.setOnMenuItemClickListener(item -> {
 
+            /* CHRIS REMOVE
             try {
                 int newState = behavior.getState() == BottomSheetBehavior.STATE_HIDDEN ?
                         BottomSheetBehavior.STATE_COLLAPSED : BottomSheetBehavior.STATE_HIDDEN;
@@ -94,11 +82,20 @@ public class MainActivity extends AppCompatActivity {
             catch(Exception ex){
                 int i = 0;
             }
-            return false;
+             */
+            return true;
         });
 
-        // initialize viewPager margin
-        root.post(() -> adjustViewPagerMarginForBottomSheet(behavior.getState()));
+        // resize scrollview to accommodate player controls
+        View playerPanel = findViewById(R.id.playerPanel);
+        View topScrollView = findViewById(R.id.topScrollView);
+        root.post(()->{
+            int playerPanelHeight = playerPanel.getMeasuredHeight();
+            CoordinatorLayout.LayoutParams sclp =
+                    (CoordinatorLayout.LayoutParams) topScrollView.getLayoutParams();
+            sclp.bottomMargin = playerPanelHeight;
+            topScrollView.setLayoutParams(sclp);
+        });
     }// end onCreate()
 
     /**
@@ -134,30 +131,21 @@ public class MainActivity extends AppCompatActivity {
                 new TabInfo(R.string.tracks_label, TrackListFragment.class)
         };
 
-        /**
-         * Constructor
-         * @param fragmentActivity FragmentActivity: if the ViewPager2 lives directly in a
-         *                         FragmentActivity subclass.
-         */
-        public MainStateAdapter(@NonNull FragmentActivity fragmentActivity) {
-            super(fragmentActivity);
-        }
+        private final WaitSplash _waitSplash;
 
         /**
          * Constructor
-         * @param fragment Fragment: if the ViewPager2 lives directly in a Fragment subclass.
-         */
-        public MainStateAdapter(@NonNull Fragment fragment) {
-            super(fragment);
-        }
-
-        /**
-         * Constructor
+         * @param waitSplash WaitSplash object
          * @param fragmentManager FragmentManager: of ViewPager2's host
          * @param lifecycle Lifecycle: of ViewPager2's host
          */
-        public MainStateAdapter(@NonNull FragmentManager fragmentManager, @NonNull Lifecycle lifecycle) {
+        public MainStateAdapter(
+                @NonNull WaitSplash waitSplash,
+                @NonNull FragmentManager fragmentManager,
+                @NonNull Lifecycle lifecycle
+        ) {
             super(fragmentManager, lifecycle);
+            _waitSplash = waitSplash;
         }
 
         public int getTitleResId(int position) {
@@ -183,7 +171,9 @@ public class MainActivity extends AppCompatActivity {
         public Fragment createFragment(int position) {
             Fragment retVal = null;
             try {
-                retVal = _tabInfo[position].getFragmentClass().newInstance();
+                Constructor<? extends Fragment> constructor = _tabInfo[position].getFragmentClass()
+                        .getConstructor(WaitSplash.class);
+                retVal = constructor.newInstance(_waitSplash);
             } catch (Exception e) {
                 e.printStackTrace();
             }

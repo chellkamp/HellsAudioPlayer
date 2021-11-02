@@ -1,6 +1,7 @@
 package com.codingwithoutpants.hellsaudioplayer.view;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,11 +9,19 @@ import android.view.ViewGroup;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 
 import com.codingwithoutpants.hellsaudioplayer.R;
+import com.codingwithoutpants.util.WaitSplash;
 
-public class AlbumListFragment extends Fragment {
+public class AlbumListFragment extends MediaFragment {
+
+    /**
+     * Constructor
+     * @param waitSplash WaitSplash object
+     */
+    public AlbumListFragment(@NonNull WaitSplash waitSplash) {
+        super(waitSplash);
+    }
 
     /**
      * Create a view from the layout resource
@@ -35,4 +44,14 @@ public class AlbumListFragment extends Fragment {
         View retVal = inflater.inflate(R.layout.fragment_albums, container);
         return retVal;
     }// end onCreateView()
+
+    /**
+     * Load data from storage into the display.
+     * By the time this function is called, the display components have been set up.
+     * This method is not guaranteed to be running in the UI thread when it is called.
+     */
+    @Override
+    protected void loadPermittedData() {
+        Log.d("ALB", "Loading data.");
+    }
 }
