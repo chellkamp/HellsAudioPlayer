@@ -1,66 +1,93 @@
 package com.codingwithoutpants.util;
 
-import android.app.Activity;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatDialogFragment;
+import androidx.fragment.app.FragmentManager;
 
 /**
- * Currently just made for FrameLayout
+ * Modal wait splash
  */
 public class WaitSplash {
-
-    private final Activity _activity;
-    private final ViewGroup _vg;
-    private final View _splashContainer;
-
-    private int _waitCount;
-
-    private final Object _splashCLock = new Object();
+    final private WSDlg _innerDlg = new WSDlg();
+    final private Object _waitLock = new Object();
+    private int _numWaiting;
+    private boolean _isVisible;
 
     /**
-     * Constructor.  Call from UI thread.
-     * @param vg viewgroup that visual components will be attached to
+     * Constructor
      */
-    public WaitSplash(@NonNull Activity activity, @NonNull ViewGroup vg) {
-        synchronized (_splashCLock) {
-            _activity = activity;
-            _vg = vg;
-            LayoutInflater inf = LayoutInflater.from(vg.getContext());
-            _splashContainer = inf.inflate(R.layout.dialog_wait, _vg, false);
-
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-            _vg.addView(_splashContainer, lp);
-            _splashContainer.setVisibility(View.GONE);
-        }
-    }// end constructor
-
-    public void startWait() {
-        _activity.runOnUiThread(this::runStartWait);
+    public WaitSplash() {
+        _innerDlg.setCancelable(false);
     }
 
-    private void runStartWait() {
-        synchronized (_splashCLock) {
-            ++_waitCount;
-            _splashContainer.setVisibility(View.VISIBLE);
-        }
-    }
-
-    public void stopWait() {
-        _activity.runOnUiThread(this::runStopWait);
-    }
-
-    private void runStopWait() {
-        synchronized (_splashCLock) {
-            --_waitCount;
-            if (_waitCount < 0) {
-                _waitCount = 0;
+    /**
+     * Display the wait splash
+     * @param fm fragment manager
+     * @param tag tag
+     */
+    public void show(@NonNull FragmentManager fm, @NonNull String tag) {
+        synchronized (_waitLock) {
+            if (!_isVisible) {
+                _innerDlg.show(fm, tag);
+                _isVisible = true;
             }
-            _splashContainer.setVisibility(View.GONE);
+            ++_numWaiting;
+        }
+    }
+
+    /**
+     * Dismiss the wait splash.
+     */
+    public void dismiss() {
+        synchronized (_waitLock) {
+            --_numWaiting;
+            if (_numWaiting < 0) {
+                _numWaiting = 0;
+            }
+
+            if (_numWaiting < 1) {
+                _isVisible = false;
+                _innerDlg.dismiss();
+            }
+        }
+    }
+
+    /**
+     * Inner dialog class that handles layout details.  Needs to be public for Android system to properly instantiate at runtime,
+     * but developers should not need to use this class directly.
+     * Recommended to use {@link #WaitSplash} class instead.
+     */
+    public static class WSDlg extends AppCompatDialogFragment {
+        /**
+         * Called to have the fragment instantiate its user interface view.
+         * This is optional, and non-graphical fragments can return null. This will be called between
+         * {@link #onCreate(Bundle)} and {@link #onViewCreated(View, Bundle)}.
+         *
+         * <p>It is recommended to <strong>only</strong> inflate the layout in this method and move
+         * logic that operates on the returned View to {@link #onViewCreated(View, Bundle)}.
+         *
+         * <p>If you return a View from here, you will later be called in
+         * {@link #onDestroyView} when the view is being released.
+         *
+         * @param inflater           The LayoutInflater object that can be used to inflate
+         *                           any views in the fragment,
+         * @param container          If non-null, this is the parent view that the fragment's
+         *                           UI should be attached to.  The fragment should not add the view itself,
+         *                           but this can be used to generate the LayoutParams of the view.
+         * @param savedInstanceState If non-null, this fragment is being re-constructed
+         *                           from a previous saved state as given here.
+         * @return Return the View for the fragment's UI, or null.
+         */
+        @Nullable
+        @Override
+        public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+            return inflater.inflate(R.layout.dialog_wait, container, false);
         }
     }
 }

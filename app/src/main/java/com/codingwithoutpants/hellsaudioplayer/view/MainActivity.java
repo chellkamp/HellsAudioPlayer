@@ -13,7 +13,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.View;
-import android.view.ViewGroup;
 
 import com.codingwithoutpants.hellsaudioplayer.R;
 import com.codingwithoutpants.util.WaitSplash;
@@ -27,7 +26,7 @@ import java.lang.reflect.Constructor;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private WaitSplash _waitSplash;
+    final private WaitSplash _waitSplash = new WaitSplash();
 
     /**
      * Called when the activity is to be created.
@@ -42,7 +41,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ViewGroup waitSplashWrapper = findViewById(R.id.waitSplashWrapper);
         View root = findViewById(R.id.root);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -51,8 +49,6 @@ public class MainActivity extends AppCompatActivity {
         /* CHRIS REMOVE
         View bottomSheet = findViewById(R.id.bottomSheet);
         BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);*/
-
-        _waitSplash = new WaitSplash(this, waitSplashWrapper);
 
         /* CHRIS REMOVE
         // initialize bottom sheet behavior
@@ -72,6 +68,14 @@ public class MainActivity extends AppCompatActivity {
                 (tab, position) -> tab.setText(pageAdapter.getTitleResId(position))).attach();
 
         toolbar.setOnMenuItemClickListener(item -> {
+
+            runOnUiThread(()->{
+                _waitSplash.show(getSupportFragmentManager(), "WSplash");
+                new Thread(()->{
+                    try{Thread.sleep(3000);} catch(Exception ex){}
+                    runOnUiThread(()->_waitSplash.dismiss());
+                }).start();
+            });
 
             /* CHRIS REMOVE
             try {
